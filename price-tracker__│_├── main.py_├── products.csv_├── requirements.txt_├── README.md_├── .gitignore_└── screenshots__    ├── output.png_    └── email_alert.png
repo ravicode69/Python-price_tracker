@@ -1,0 +1,46 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+import smtplib
+from email.message import EmailMessage
+
+URL = "https://example.com/product"
+TARGET_PRICE = 1000
+
+headers = {
+    "User-Agent": "Mozilla/5.0"
+}
+
+response = requests.get(URL, headers=headers)
+soup = BeautifulSoup(response.text, "html.parser")
+
+# Example selector
+product_name = soup.find("h1").text.strip()
+price_text = soup.find("span", class_="price").text.strip()
+
+price = int(''.join(filter(str.isdigit, price_text)))
+
+print("Product:", product_name)
+print("Current Price:", price)
+
+# Save data
+with open("products.csv", "a", newline="", encoding="utf-8") as file:
+    writer = csv.writer(file)
+    writer.writerow([product_name, price])
+
+# Send alert if price drops
+if price <= TARGET_PRICE:
+    msg = EmailMessage()
+    msg["Subject"] = "Price Dropped!"
+    msg["From"] = "your_email@gmail.com"
+    msg["To"] = "your_email@gmail.com"
+
+    msg.set_content(
+        f"{product_name} is now ₹{price}\n{URL}"
+    )
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login("your_email@gmail.com", "your_app_password")
+        smtp.send_message(msg)
+
+    print("Email alert sent!")
